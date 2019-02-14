@@ -1,0 +1,219 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.dao.MenuMapper">
+  <resultMap id="BaseResultMap" type="com.bean.Menu">
+    <id column="menuid" jdbcType="INTEGER" property="menuid" />
+    <result column="menuname" jdbcType="VARCHAR" property="menuname" />
+    <result column="upmenuid" jdbcType="INTEGER" property="upmenuid" />
+    <result column="menupath" jdbcType="VARCHAR" property="menupath" />
+    <result column="menustate" jdbcType="INTEGER" property="menustate" />
+    <result column="menuremark" jdbcType="VARCHAR" property="menuremark" />
+  </resultMap>
+
+  <resultMap id="ur" type="com.bean.UserTb">
+    <id column="user_id" jdbcType="INTEGER" property="userId" />
+    <result column="student_id" jdbcType="INTEGER" property="studentId" />
+    <result column="role_id" jdbcType="INTEGER" property="roleId" />
+    <result column="user_name" jdbcType="VARCHAR" property="userName" />
+    <result column="user_ps" jdbcType="VARCHAR" property="userPs" />
+    <result column="user_realname" jdbcType="VARCHAR" property="userRealname" />
+    <result column="user_sex" jdbcType="VARCHAR" property="userSex" />
+    <result column="user_email" jdbcType="VARCHAR" property="userEmail" />
+    <result column="user_phone" jdbcType="VARCHAR" property="userPhone" />
+    <result column="user_address" jdbcType="VARCHAR" property="userAddress" />
+    <result column="user_idcard" jdbcType="VARCHAR" property="userIdcard" />
+    <result column="user_content" jdbcType="VARCHAR" property="userContent" />
+    <result column="logincount" jdbcType="INTEGER" property="logincount" />
+    <result column="regdate" jdbcType="DATE" property="regdate" />
+    <result column="managerid" jdbcType="INTEGER" property="managerid" />
+    <collection property="role" ofType="com.bean.Role">
+      <id property="roleid" column="roleid" jdbcType="INTEGER"/>
+      <result column="rolename" property="rolename" jdbcType="VARCHAR"/>
+      <result column="rolestate" jdbcType="INTEGER" property="rolestate" />
+    </collection>
+  </resultMap>
+
+  <!--根据多个一级菜单id查询其下的二级菜单数量-->
+  <select id="selectSecondCountByMids" resultType="int">
+    select count(*) from menu where
+    upmenuid in (
+      <foreach collection="list" separator="," item="menuids">
+        #{menuids}
+      </foreach>
+    )
+  </select>
+
+  <!--根据单个一级菜单id查询其下的二级菜单数量-->
+  <select id="selectOneSecondCountByMid" resultType="int">
+    select count(*) from menu where
+    upmenuid = #{menuid}
+  </select>
+
+
+  <!--查询多个菜单被角色使用的个数(通过菜单id)-->
+  <select id="selectCountByMid" resultType="int">
+    select count(*) from middle
+    where menuid in(
+      <foreach collection="list" separator="," item="menuid">
+        #{menuid}
+      </foreach>
+    )
+  </select>
+
+  <!--查询单个菜单被角色使用的个数(通过菜单id)-->
+  <select id="selectonecountbymid" resultType="int">
+    select count(*) from middle
+    where menuid = #{menuid}
+  </select>
+
+  <!--添加角色和菜单的关系-->
+  <insert id="addMiddle">
+    insert into middle(menuid,roleid) values
+    <foreach collection="menuid" item="mid" separator=",">
+      (#{mid},#{roleid})
+    </foreach>
+  </insert>
+
+  <!--通过id查询菜单信息-->
+  <select id="findMenusByMids" resultMap="BaseResultMap">
+    select * from menu
+    where menuid in (
+      <foreach collection="array" separator="," item="mid">
+        #{mid}
+      </foreach>
+    )
+  </select>
+
+  <!--通过角色id查询对应菜单信息-->
+  <select id="getMenusByRid" resultMap="BaseResultMap">
+    select * from menu , middle where
+    menu.menuid=middle.menuid and middle.roleid=#{roleid}
+  </select>
+
+  <!--批量删除菜单-->
+  <delete id="deleteMenus">
+    delete from menu where menuid
+    in (
+      <foreach collection="list" separator="," item="mmid">
+        #{mmid}
+      </foreach>
+    )
+  </delete>
+  <!--获取菜单信息-->
+  <select id="getmenus" resultType="com.bean.Menu">
+    select * from menu
+  </select>
+  <!--查询所有用户角色信息-->
+  <select id="getAll" resultMap="ur">
+    select * from user_tb ut , role r
+    where ut.role_id=r.roleid
+  </select>
+
+  <!--根据角色id查询菜单信息-->
+  <select id="getMenuByRid" resultMap="BaseResultMap">
+      select * from menu,middle
+      where menu.menuid=middle.menuid
+      and middle.roleid=#{roleid}
+  </select>
+
+  <!--获取所有的一级菜单-->
+  <select id="getAllFirstMenu" resultType="com.bean.Menu">
+    select * from menu where
+    upmenuid = -1
+  </select>
+
+  <sql id="Base_Column_List">
+    menuid, menuname, upmenuid, menupath, menustate, menuremark
+  </sql>
+  <select id="selectByPrimaryKey" parameterType="java.lang.Integer" resultMap="BaseResultMap">
+    select 
+    <include refid="Base_Column_List" />
+    from menu
+    where menuid = #{menuid,jdbcType=INTEGER}
+  </select>
+  <delete id="deleteByPrimaryKey" parameterType="java.lang.Integer">
+    delete from menu
+    where menuid = #{menuid,jdbcType=INTEGER}
+  </delete>
+  <insert id="insert" parameterType="com.bean.Menu">
+    insert into menu (menuid, menuname, upmenuid, 
+      menupath, menustate, menuremark
+      )
+    values (#{menuid,jdbcType=INTEGER}, #{menuname,jdbcType=VARCHAR}, #{upmenuid,jdbcType=INTEGER}, 
+      #{menupath,jdbcType=VARCHAR}, #{menustate,jdbcType=INTEGER}, #{menuremark,jdbcType=VARCHAR}
+      )
+  </insert>
+  <insert id="insertSelective" parameterType="com.bean.Menu">
+    insert into menu
+    <trim prefix="(" suffix=")" suffixOverrides=",">
+      <if test="menuid != null">
+        menuid,
+      </if>
+      <if test="menuname != null">
+        menuname,
+      </if>
+      <if test="upmenuid != null">
+        upmenuid,
+      </if>
+      <if test="menupath != null">
+        menupath,
+      </if>
+      <if test="menustate != null">
+        menustate,
+      </if>
+      <if test="menuremark != null">
+        menuremark,
+      </if>
+    </trim>
+    <trim prefix="values (" suffix=")" suffixOverrides=",">
+      <if test="menuid != null">
+        #{menuid,jdbcType=INTEGER},
+      </if>
+      <if test="menuname != null">
+        #{menuname,jdbcType=VARCHAR},
+      </if>
+      <if test="upmenuid != null">
+        #{upmenuid,jdbcType=INTEGER},
+      </if>
+      <if test="menupath != null">
+        #{menupath,jdbcType=VARCHAR},
+      </if>
+      <if test="menustate != null">
+        #{menustate,jdbcType=INTEGER},
+      </if>
+      <if test="menuremark != null">
+        #{menuremark,jdbcType=VARCHAR},
+      </if>
+    </trim>
+  </insert>
+  <update id="updateByPrimaryKeySelective" parameterType="com.bean.Menu">
+    update menu
+    <set>
+      <if test="menuname != null">
+        menuname = #{menuname,jdbcType=VARCHAR},
+      </if>
+      <if test="upmenuid != null">
+        upmenuid = #{upmenuid,jdbcType=INTEGER},
+      </if>
+      <if test="menupath != null">
+        menupath = #{menupath,jdbcType=VARCHAR},
+      </if>
+      <if test="menustate != null">
+        menustate = #{menustate,jdbcType=INTEGER},
+      </if>
+      <if test="menuremark != null">
+        menuremark = #{menuremark,jdbcType=VARCHAR},
+      </if>
+    </set>
+    where menuid = #{menuid,jdbcType=INTEGER}
+  </update>
+  <update id="updateByPrimaryKey" parameterType="com.bean.Menu">
+    update menu
+    set menuname = #{menuname,jdbcType=VARCHAR},
+      upmenuid = #{upmenuid,jdbcType=INTEGER},
+      menupath = #{menupath,jdbcType=VARCHAR},
+      menustate = #{menustate,jdbcType=INTEGER},
+      menuremark = #{menuremark,jdbcType=VARCHAR}
+    where menuid = #{menuid,jdbcType=INTEGER}
+  </update>
+</mapper>

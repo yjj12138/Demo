@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:p="http://www.springframework.org/schema/p"
+       xmlns:tx="http://www.springframework.org/schema/tx"
+       xmlns:aop="http://www.springframework.org/schema/aop"
+       xmlns:mvc="http://www.springframework.org/schema/mvc"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:jaxws="http://cxf.apache.org/jaxws"
+       xsi:schemaLocation="
+       http://www.springframework.org/schema/beans 
+       http://www.springframework.org/schema/beans/spring-beans.xsd
+       http://www.springframework.org/schema/context 
+       http://www.springframework.org/schema/context/spring-context.xsd
+       http://www.springframework.org/schema/aop
+       http://www.springframework.org/schema/aop/spring-aop.xsd
+       http://www.springframework.org/schema/tx
+       http://www.springframework.org/schema/tx/spring-tx.xsd
+       http://www.springframework.org/schema/mvc
+       http://www.springframework.org/schema/mvc/spring-mvc.xsd
+http://cxf.apache.org/jaxws
+http://cxf.apache.org/schemas/jaxws.xsd
+">
+
+    <!--文件上传配置-->
+    <bean id="multipartResolver" class="org.springframework.web.multipart.commons.CommonsMultipartResolver">
+        <property name="defaultEncoding" value="UTF-8"/>
+        <property name="maxUploadSize" value="99999999"/>
+    </bean>
+
+    <!--1.创建数据源,使用spring连接数据库-->
+    <context:property-placeholder location="classpath:db.properties" system-properties-mode="FALLBACK"/>
+    <bean id="db" destroy-method="close" class="com.alibaba.druid.pool.DruidDataSource">
+        <property name="url" value="${url}"></property>
+        <property name="username" value="${uname}"></property>
+        <property name="password" value="${upass}"></property>
+        <property name="driverClassName" value="${driver}"></property>
+        <property name="maxActive" value="10"/>
+        <property name="minIdle" value="5"/>
+    </bean>
+
+       <!--2.创建sqlsession工场-->
+    <bean id="factory" class="org.mybatis.spring.SqlSessionFactoryBean">
+        <property name="dataSource" ref="db"></property>
+        <property name="mapperLocations" value="classpath:mapper/*.xml"></property>
+        <property name="configLocation" value="classpath:mybatis.xml"></property>
+    </bean>
+    <!--使用dao层实现类的时候，需要得到sqlSessionTemplate对象-->
+    <!--<bean id="temp" class="org.mybatis.spring.SqlSessionTemplate">
+         <constructor-arg index="0" ref="factory"></constructor-arg>
+    </bean>-->
+
+    <!--3.省略dao层实现类的写法-->
+    <bean class="org.mybatis.spring.mapper.MapperScannerConfigurer">
+        <property name="basePackage" value="com.dao"></property>
+        <property name="sqlSessionFactoryBeanName" value="factory"></property>
+    </bean>
+
+    <!--4.扫描注解包-->
+    <context:component-scan base-package="com"></context:component-scan>
+
+    <!--5.创建视图解析器-->
+    <bean class="org.springframework.web.servlet.view.InternalResourceViewResolver">
+        <property name="prefix" value="/"/>
+        <property name="suffix" value=".jsp"/>
+    </bean>
+
+    <!--6.启用springmvc的注解-->
+    <mvc:annotation-driven></mvc:annotation-driven>
+    <!--7.配置静态资源路径-->
+    <!--<mvc:resources mapping="/**" location="/"></mvc:resources>-->
+    <mvc:default-servlet-handler></mvc:default-servlet-handler>
+    <!--8.配置事务-->
+    <bean id="tx" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+        <property name="dataSource" ref="db"></property>
+    </bean>
+    <tx:annotation-driven transaction-manager="tx"></tx:annotation-driven>
+
+    <!--手机号归属地查询-->
+    <jaxws:client id="mobiledao"
+        serviceClass="cn.com.webxml.MobileCodeWSSoap"
+        address="http://ws.webxml.com.cn/WebServices/MobileCodeWS.asmx?wsdl"
+    ></jaxws:client>
+    <!-- 4.1  spring负责创建流程引擎的配置文件 -->
+    <bean
+            id="processEngineConfiguration"
+            class="org.activiti.spring.SpringProcessEngineConfiguration">
+        <!-- 数据源 -->
+        <property name="dataSource" ref="db" />
+        <!-- 配置事务管理器，统一事务 -->
+        <property name="transactionManager" ref="tx" />
+        <!-- 设置建表策略，如果没有表，自动创建表 -->
+        <property name="databaseSchemaUpdate" value="true" />
+    </bean>
+    <!-- 4.2  创建流程引擎对象 -->
+    <bean id="processEngine" class="org.activiti.spring.ProcessEngineFactoryBean">
+        <property name="processEngineConfiguration" ref="processEngineConfiguration" />
+    </bean>
+
+    <!--  4.3  由流程引擎对象，提供的方法，创建项目中使用的Activiti工作流的Service -->
+    <bean id="repositoryService"
+          factory-bean="processEngine" factory-method="getRepositoryService" />
+    <bean id="runtimeService" factory-bean="processEngine"
+          factory-method="getRuntimeService" />
+    <bean id="taskService" factory-bean="processEngine" factory-method="getTaskService" />
+    <bean id="historyService" factory-bean="processEngine" factory-method="getHistoryService" />
+    <bean id="formService" factory-bean="processEngine" factory-method="getFormService" />
+</beans>

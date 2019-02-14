@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<taglib>
+    <tlib-version>1.1</tlib-version>
+    <jsp-version>2.0</jsp-version>
+    <short-name>pagetag</short-name>
+    <uri>http://java.sun.com/jsp/jstl/pagetag</uri>
+
+    <tag>
+        <name>seperator</name>
+        <tag-class>com.util.Pagetag</tag-class>
+        <body-content>empty</body-content>
+        <attribute>
+            <name>url</name>
+            <type>java.lang.String</type>
+            <required>true</required>
+            <rtexprvalue>true</rtexprvalue>
+        </attribute>
+        <attribute>
+            <name>pageInfo</name>
+            <type>com.github.pagehelper.PageInfo</type>
+            <required>true</required>
+            <rtexprvalue>true</rtexprvalue>
+        </attribute>
+    </tag>
+</taglib>
